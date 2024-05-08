@@ -103,13 +103,22 @@ class Stand {
     int hoogte,
     breedte, // aantal rijen/kolommen van het bord
     bord[MaxDimBord][MaxDimBord];
-    int aantalTegels; // aantal stenen
+    int aantalStenen; // aantal stenen
     char stenen[20][5][5]; // representatie van de stenen
     // Bovenste rij is rij 0, onderste rij is rij hoogte-1.
     // Meest linker kolom is kolom 0, meest rechter kolom is
     // kolom breedte-1.
 
     // TODO: uw eigen private memberfuncties en -variabelen
+
+    // Rotate a stone 90 degrees clockwise
+    void draai90(char steen[5][5]);
+
+    // Mirror a stone in x
+    void spiegelX(char steen[5][5]);
+
+    // Get the rotated/mirrored stone based on the orientation number
+    void krijgGeorienteerdeSteen(char steen[5][5], int orient);
 
 };
 
