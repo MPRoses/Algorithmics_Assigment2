@@ -114,8 +114,11 @@ class Stand {
     std::vector<char> origineleWaarde; // originele waarde van de top-left cell van elke steen
 
 
-
     // TODO: uw eigen private memberfuncties en -variabelen
+
+    bool isSteennrInStack(int steennr);
+
+    bool isOpgelost();
 
     bool bepaalOplossingDom(long long & aantalStanden, int oplossing[MaxDimBord][MaxDimBord]);
 

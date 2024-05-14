@@ -7,6 +7,7 @@
 #include <fstream>
 #include <string>
 #include <cstring>
+#include <vector>
 
 using namespace std;
 
@@ -57,7 +58,6 @@ void Stand::drukAf() {
 
   // Print the available stones
   cout << "Beschikbare stenen:\n";
-  cout << "aantalverwi " << aantalVerwijderd << "\n aantalsten" << aantalStenen << '\n';
   for (int i = (0 + aantalVerwijderd); i < (aantalStenen + aantalVerwijderd); ++i) {
     // als steen al gelegd, ga verder
     if (stenen[i][0][0] == '-') continue;
@@ -117,8 +117,14 @@ bool Stand::leesInStenen(const char * invoernaam) {
 
 //*************************************************************************
 
+
+
 bool Stand::legSteenNeer(int rij, int kolom, int steennr, int orient) {
   if (steennr < 1 || steennr > (aantalStenen + 1) || orient < 0 || orient > 7) {
+    return false;
+  }
+
+  if (isSteennrInStack(steennr)) {
     return false;
   }
 
@@ -139,7 +145,6 @@ bool Stand::legSteenNeer(int rij, int kolom, int steennr, int orient) {
         int x = rij + i;
         int y = kolom + j;
         if (x < 0 || x >= hoogte || y < 0 || y >= breedte || bord[x][y] != 0) {
-          cout << "De steen past niet op het bord! \n";
           return false; 
         }
       }
@@ -163,6 +168,15 @@ bool Stand::legSteenNeer(int rij, int kolom, int steennr, int orient) {
 
   return true;
 }//legSteenNeer
+
+bool Stand::isSteennrInStack(int steennr) {
+  for (size_t i = 0; i < steennrStack.size(); ++i) {
+    if (steennrStack[i] == steennr) {
+      return true;
+    }
+  }
+  return false;
+}
 
 
 // Remove a stone from the pool
@@ -212,10 +226,108 @@ void Stand::maakZetOngedaan() {
     }
 }
 
-bool Stand::bepaalOplossing(long long & aantalStanden, bool slim, int oplossing[MaxDimBord][MaxDimBord]) {
+bool Stand::isOpgelost() {
+    for (int i = 0; i < hoogte; ++i) {
+      for (int j = 0; j < breedte; ++j) {
+        // If any cell on the board is empty (0), the game is not solved
+        if (bord[i][j] == 0) {
+          return false;
+        }
+      }
+    }
+    return true;
+}
 
+bool Stand::bepaalOplossing(long long & aantalStanden, bool slim, int oplossing[MaxDimBord][MaxDimBord]) {
+  aantalStanden = 0;
+  // Create a copy of the board
+  int tempBord[MaxDimBord][MaxDimBord];
+  for (int i = 0; i < hoogte; ++i) {
+    for (int j = 0; j < breedte; ++j) {
+      tempBord[i][j] = bord[i][j];
+    }
+  }
+
+  // Create a copy of the stacks
+  std::vector<int> tempSteennrStack = steennrStack;
+  std::vector<int> tempKolomStack = kolomStack;
+  std::vector<int> tempRijStack = rijStack;
+  std::vector<char> temporigineleWaarde = origineleWaarde;
+
+  int gevonden = 0;
+
+  if (slim == 0) {
+    if (bepaalOplossingDom(aantalStanden, oplossing)) {
+      gevonden = 1;
+    }
+  } else {
+    // smart
+  }
+
+  if (gevonden) {
+    // copy solved bord to solution
+    for (int i = 0; i < hoogte; ++i) {
+      for (int j = 0; j < breedte; ++j) {
+        oplossing[i][j] = bord[i][j];
+      }
+    }
+  }
+
+  // Restore the original board and stacks
+  for (int i = 0; i < hoogte; ++i) {
+    for (int j = 0; j < breedte; ++j) {
+      bord[i][j] = tempBord[i][j];
+    }
+  }
+  steennrStack = tempSteennrStack;
+  kolomStack = tempKolomStack;
+  rijStack = tempRijStack;
+  origineleWaarde = temporigineleWaarde;
+
+  if (!gevonden) {
+    return false;
+  }
+
+  return true;
+} 
+
+bool Stand::bepaalOplossingDom(long long & aantalStanden, int oplossing[MaxDimBord][MaxDimBord]) {
+  // Base case: If the board is solved, we have found a solution
+  if (isOpgelost()) {
+    return true;
+  }
+
+  // Try to place each stone on the board
+  for (int steennr = 1; steennr <= (aantalStenen + aantalVerwijderd); ++steennr) {
+    // If the stone is already in the stack, skip this iteration
+    if (isSteennrInStack(steennr)) {
+      continue;
+    }
+    for (int rij = 0; rij < hoogte; ++rij) {
+      for (int kolom = 0; kolom < breedte; ++kolom) {
+        for (int orient = 0; orient < 8; ++orient) {
+          // Try to place the stone
+          if (legSteenNeer(rij, kolom, steennr, orient)) {
+            aantalStanden++;
+
+            // Recurse to place the next stone
+            if (bepaalOplossingDom(aantalStanden, oplossing)) {
+              return true;
+            }
+
+            // If placing the stone did not lead to a solution, remove it
+            maakZetOngedaan();
+          }
+        }
+      }
+    }
+  }
+
+  // If no solution was found after trying all stones, return false
   return false;
 }
+
+
 
 //*************************************************************************
 
