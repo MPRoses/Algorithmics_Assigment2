@@ -1,11 +1,11 @@
-// Definitie van klasse Stand.
-
+// Definitie van klasse Stand........
 #ifndef StandHVar // om te voorkomen dat dit .h bestand meerdere keren
 #define StandHVar // wordt ge-include 
 
 #include <fstream>
 #include "constantes.h"
 #include "steen.h"
+#include <vector>
 
 class Stand {
   public:
@@ -29,8 +29,7 @@ class Stand {
     }
 
     // Geef het nummer van de steen die vakje (i,j) van het bord bedekt,
-    // of 0 als het vakje nog leeg is.
-    // Nodig voor automatische test bij het nakijken.
+    // of 0 als het vakje nog leeg is
     int getVakje(int i, int j);
 
     // Druk het bord en de nog beschikbare stenen (met hun nummers, in
@@ -104,12 +103,28 @@ class Stand {
     breedte, // aantal rijen/kolommen van het bord
     bord[MaxDimBord][MaxDimBord];
     int aantalStenen; // aantal stenen
+    int aantalVerwijderd = 0; // aantal verwijderde stenen
     char stenen[20][5][5]; // representatie van de stenen
-    // Bovenste rij is rij 0, onderste rij is rij hoogte-1.
-    // Meest linker kolom is kolom 0, meest rechter kolom is
-    // kolom breedte-1.
+    
+    // Add these three member variables
+    // stack voor bijhouden zetten
+    std::vector<int> steennrStack;
+    std::vector<int> kolomStack;
+    std::vector<int> rijStack;
+    std::vector<char> origineleWaarde; // originele waarde van de top-left cell van elke steen
+
+
 
     // TODO: uw eigen private memberfuncties en -variabelen
+
+    bool bepaalOplossingDom(long long & aantalStanden, int oplossing[MaxDimBord][MaxDimBord]);
+
+    bool bepaalOplossingSlim(long long & aantalStanden, int oplossing[MaxDimBord][MaxDimBord]);
+
+    // Remove a stone from the pool
+    void verwijderSteen(int steennr);
+
+    void maakZetOngedaan();
 
     // Rotate a stone 90 degrees clockwise
     void draai90(char steen[5][5]);
