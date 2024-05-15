@@ -166,7 +166,11 @@ class Stand {
       // herstel het bord
     void herstelBord();
 
-    void sortStenen();
+    // help
+    vector<tuple<int, int, int>> getOptiesSlim(int steennr);
+
+    bool kanSteenHier(int rij, int kolom, int steennr, int orient);
+
 
 };
 
