@@ -8,6 +8,11 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <stack>
+#include <unordered_set>
+#include <deque>
+
+
 
 using namespace std;
 
@@ -57,7 +62,10 @@ void Stand::drukAf() {
   }
 
   // Print the available stones
-  cout << "Beschikbare stenen:\n";
+  if (aantalStenen != 0) {
+    cout << "Beschikbare stenen:\n";
+  }
+
   for (int i = (0 + aantalVerwijderd); i < (aantalStenen + aantalVerwijderd); ++i) {
     // als steen al gelegd, ga verder
     if (stenen[i][0][0] == '-') continue;
@@ -117,48 +125,67 @@ bool Stand::leesInStenen(const char * invoernaam) {
 
 //*************************************************************************
 
+void Stand::getSteenDimensies(int steennr, int& width, int& height) {
+  // Initialize width and height to 0
+  width = 0;
+  height = 0;
 
-
-bool Stand::legSteenNeer(int rij, int kolom, int steennr, int orient) {
-  if (steennr < 1 || steennr > (aantalStenen + 1) || orient < 0 || orient > 7) {
-    return false;
-  }
-
-  if (isSteennrInStack(steennr)) {
-    return false;
-  }
-
-  char steen[5][5];
+  // Calculate the width and height of the stone
   for (int i = 0; i < 5; ++i) {
     for (int j = 0; j < 5; ++j) {
-      steen[i][j] = stenen[steennr - 1][i][j];
-    }
-  }
-
-  // Rotate the stone to the desired orientation
-  krijgGeorienteerdeSteen(steen, orient);
-
-   // Check if the stone fits within the board
-  for (int i = 0; i < 5; ++i) {
-    for (int j = 0; j < 5; ++j) {
-      if (steen[i][j] == 'X') {
-        int x = rij + i;
-        int y = kolom + j;
-        if (x < 0 || x >= hoogte || y < 0 || y >= breedte || bord[x][y] != 0) {
-          return false; 
+      if (stenen[steennr - 1][i][j] == 'X') {
+        if (j + 1 > width) {
+          width = j + 1;
+        }
+        if (i + 1 > height) {
+          height = i + 1;
         }
       }
     }
   }
+}
 
-  // Place the stone on the board
-  for (int i = 0; i < 5; ++i) {
-    for (int j = 0; j < 5; ++j) {
-      if (steen[i][j] == 'X') {
-        bord[rij + i][kolom + j] = steennr;
+
+bool Stand::legSteenNeer(int rij, int kolom, int steennr, int orient) {
+    if (steennr < 1 || steennr > (aantalStenen + aantalVerwijderd + 1) || orient < 0 || orient > 7) {
+      return false;
+    }
+
+    if (isSteennrInStack(steennr)) {
+      return false;
+    }
+
+    char steen[5][5];
+    for (int i = 0; i < 5; ++i) {
+      for (int j = 0; j < 5; ++j) {
+        steen[i][j] = stenen[steennr - 1][i][j];
       }
     }
-  }
+
+    // Rotate the stone to the desired orientation
+    krijgGeorienteerdeSteen(steen, orient);
+
+    // Check if the stone fits within the board
+    for (int i = 0; i < 5; ++i) {
+      for (int j = 0; j < 5; ++j) {
+        if (steen[i][j] == 'X') {
+          int x = rij + i;
+          int y = kolom + j;
+          if (x < 0 || x >= hoogte || y < 0 || y >= breedte || bord[x][y] != 0) {
+            return false; 
+          }
+        }
+      }
+    }
+
+    // Place the stone on the board
+    for (int i = 0; i < 5; ++i) {
+      for (int j = 0; j < 5; ++j) {
+        if (steen[i][j] == 'X') {
+          bord[rij + i][kolom + j] = steennr;
+        }
+      }
+    }
 
   steennrStack.push_back(steennr);
   kolomStack.push_back(kolom);
@@ -239,29 +266,22 @@ bool Stand::isOpgelost() {
 }
 
 bool Stand::bepaalOplossing(long long & aantalStanden, bool slim, int oplossing[MaxDimBord][MaxDimBord]) {
+  kopieerBord();
+
+  // reset vars
   aantalStanden = 0;
-  // Create a copy of the board
-  int tempBord[MaxDimBord][MaxDimBord];
-  for (int i = 0; i < hoogte; ++i) {
-    for (int j = 0; j < breedte; ++j) {
-      tempBord[i][j] = bord[i][j];
-    }
-  }
-
-  // Create a copy of the stacks
-  std::vector<int> tempSteennrStack = steennrStack;
-  std::vector<int> tempKolomStack = kolomStack;
-  std::vector<int> tempRijStack = rijStack;
-  std::vector<char> temporigineleWaarde = origineleWaarde;
-
+  performance = 0;
   int gevonden = 0;
 
   if (slim == 0) {
-    if (bepaalOplossingDom(aantalStanden, oplossing)) {
+    if (bepaalOplossingDom(aantalStanden)) {
       gevonden = 1;
     }
   } else {
-    // smart
+    performance = 1;
+    if (bepaalOplossingSlim(aantalStanden)) {
+      gevonden = 1;
+    }
   }
 
   if (gevonden) {
@@ -272,17 +292,8 @@ bool Stand::bepaalOplossing(long long & aantalStanden, bool slim, int oplossing[
       }
     }
   }
-
-  // Restore the original board and stacks
-  for (int i = 0; i < hoogte; ++i) {
-    for (int j = 0; j < breedte; ++j) {
-      bord[i][j] = tempBord[i][j];
-    }
-  }
-  steennrStack = tempSteennrStack;
-  kolomStack = tempKolomStack;
-  rijStack = tempRijStack;
-  origineleWaarde = temporigineleWaarde;
+  
+  herstelBord();
 
   if (!gevonden) {
     return false;
@@ -291,7 +302,7 @@ bool Stand::bepaalOplossing(long long & aantalStanden, bool slim, int oplossing[
   return true;
 } 
 
-bool Stand::bepaalOplossingDom(long long & aantalStanden, int oplossing[MaxDimBord][MaxDimBord]) {
+bool Stand::bepaalOplossingDom(long long & aantalStanden) {
   // Base case: If the board is solved, we have found a solution
   if (isOpgelost()) {
     return true;
@@ -306,30 +317,118 @@ bool Stand::bepaalOplossingDom(long long & aantalStanden, int oplossing[MaxDimBo
     for (int rij = 0; rij < hoogte; ++rij) {
       for (int kolom = 0; kolom < breedte; ++kolom) {
         for (int orient = 0; orient < 8; ++orient) {
+          aantalStanden++;
           // Try to place the stone
           if (legSteenNeer(rij, kolom, steennr, orient)) {
-            aantalStanden++;
 
             // Recurse to place the next stone
-            if (bepaalOplossingDom(aantalStanden, oplossing)) {
+            if (bepaalOplossingDom(aantalStanden)) {
               return true;
             }
 
             // If placing the stone did not lead to a solution, remove it
             maakZetOngedaan();
+            goto next;
           }
         }
       }
     }
+    next: ;
   }
 
   // If no solution was found after trying all stones, return false
   return false;
 }
 
+bool Stand::bepaalOplossingSlim(long long & aantalStanden) {
+  if (isOpgelost()) {
+    return true;
+  }
+
+  // For elke steen
+  for (int steennr = 1; steennr <= (aantalStenen + aantalVerwijderd); ++steennr) {
+    // Als de steen al geplaatst is, ga naar volgende steen
+    if (isSteennrInStack(steennr)) {
+      continue;
+    }
+
+    // Stap 1, get width x height voor steen orientatie 0.
+    int steenWidth, steenHeight;
+    getSteenDimensies(steennr, steenWidth, steenHeight);
+    bool placed = false; 
+
+    // Splits steen op in twee groepen
+    // G1=orient{0,2,4,6}, G2=orient{1,3,5,7}
+    // Voor G1:
+    for (int orient = 0; orient < 8; orient += 2) {
+      for (int rij = 0; rij < (hoogte + 1 - steenHeight); rij++) {
+        for (int kolom = 0; kolom < (breedte + 1 - steenWidth); kolom++) {
+            aantalStanden++;
+           if (legSteenNeer(rij, kolom, steennr, orient)) {
+
+              // Recurse to place the next stone
+              if (bepaalOplossingSlim(aantalStanden)) {
+                return true;
+              }
+
+              // If placing the stone did not lead to a solution, remove it
+              maakZetOngedaan();
+              placed = true;
+            }
+          if (placed) break;
+        }
+        if (placed) break;
+      }
+     if (placed) break; 
+    }
+
+    if (!placed) {
+      // Voor G2:
+      // invert width x height
+      int tempVal = steenHeight;
+      steenHeight = steenWidth;
+      steenWidth = tempVal;
+
+      for (int orient = 1; orient < 8; orient += 2) {
+        for (int rij = 0; rij < (hoogte + 1 - steenHeight); rij++) {
+          for (int kolom = 0; kolom < (breedte + 1 - steenWidth); kolom++) {
+              aantalStanden++;
+              if (legSteenNeer(rij, kolom, steennr, orient)) {
+
+                // Recurse to place the next stone
+                if (bepaalOplossingSlim(aantalStanden)) {
+                  return true;
+                }
+
+                // If placing the stone did not lead to a solution, remove it
+                maakZetOngedaan();
+                placed = true;
+              }
+            if (placed) break;
+          }
+          if (placed) break;
+        }
+      if (placed) break; 
+      }
+    }
+  }
+  // If no solution was found after trying all stones, return false
+  return false;
+}
 
 
 //*************************************************************************
+
+std::size_t Stand::computePositionKey() {
+  std::size_t seed = 0;
+  for (int i = 0; i < hoogte; ++i) {
+    for (int j = 0; j < breedte; ++j) {
+      seed ^= bord[i][j] + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+  }
+  return seed;
+}
+
 
 void Stand::drukAfOplossing(int oplossing[MaxDimBord][MaxDimBord]) {
   for (int i = 0; i < hoogte; ++i) {
@@ -342,13 +441,217 @@ void Stand::drukAfOplossing(int oplossing[MaxDimBord][MaxDimBord]) {
 
 //*************************************************************************
 
+
+
 long long Stand::telOplossingen(long long & aantalStanden, bool slim) {
+  kopieerBord();
 
-  // TODO: implementeer deze memberfunctie
+  // reset vars
+  foundSolutions.clear();
+  aantalStanden = 0;
+  long long aantalOplossingen = 0;
 
-  return 0;
+  if (slim == 0) {
+    aantalOplossingen = telOplossingenDom(aantalStanden, aantalOplossingen);
+  } else {
+    aantalOplossingen = telOplossingenSlim(aantalStanden, aantalOplossingen);
+  }
 
-} // telOplossingen
+  // Restore the original board and stacks
+  herstelBord();
+
+  return aantalOplossingen;
+} 
+
+
+
+
+
+
+
+void Stand::herstelBord() {
+  // herstel bord
+  for (int i = 0; i < hoogte; ++i) {
+    for (int j = 0; j < breedte; ++j) {
+      bord[i][j] = tempBord[i][j];
+    }
+  }
+  // herstel vars
+  steennrStack = tempSteennrStack;
+  kolomStack = tempKolomStack;
+  rijStack = tempRijStack;
+  origineleWaarde = temporigineleWaarde;
+  aantalStenen = tempAantalStenen;
+  aantalVerwijderd = tempAantalVerwijderd;
+  // herstel stenen
+  for(int i = 0; i < 20; i++) {
+    for(int j = 0; j < 5; j++) {
+        for(int k = 0; k < 5; k++) {
+            stenen[i][j][k] = tempStenen[i][j][k];
+        }
+    }
+  }
+}
+
+void Stand::kopieerBord() {
+  // sla bord op
+  for (int i = 0; i < hoogte; ++i) {
+    for (int j = 0; j < breedte; ++j) {
+      tempBord[i][j] = bord[i][j];
+    }
+  }
+  // sla vars op
+  tempAantalStenen = aantalStenen;
+  tempAantalVerwijderd = aantalVerwijderd;
+  tempSteennrStack = steennrStack;
+  tempKolomStack = kolomStack;
+  tempRijStack = rijStack;
+  temporigineleWaarde = origineleWaarde;
+  // sla stenen op
+  for(int i = 0; i < 20; i++) {
+    for(int j = 0; j < 5; j++) {
+      for(int k = 0; k < 5; k++) {
+        tempStenen[i][j][k] = stenen[i][j][k];
+      }
+    }
+  }
+}
+
+int Stand::telOplossingenDom(long long & aantalStanden, long long & aantalOplossingen) {
+  if (isOpgelost()) {
+    std::size_t key = computePositionKey();
+
+    bool keyExists = false;
+    for (const auto& existingKey : foundSolutions) {
+      if (existingKey == key) {
+        keyExists = true;
+        break;
+      }
+    }
+
+    if (!keyExists) {
+      foundSolutions.push_back(key);
+      cout << "Solved position key: " << key << '\n';
+      aantalOplossingen++;
+      drukAf();
+
+    }
+  }
+
+  // Try to place each stone on the board
+  for (int steennr = 1; steennr <= (aantalStenen + aantalVerwijderd); ++steennr) {
+    // If the stone is already in the stack, skip this iteration
+    if (isSteennrInStack(steennr)) {
+      continue;
+    }
+    for (int rij = 0; rij < hoogte; ++rij) {
+      for (int kolom = 0; kolom < breedte; ++kolom) {
+        for (int orient = 0; orient < 8; ++orient) {
+          aantalStanden++;
+          // Try to place the stone
+          if (legSteenNeer(rij, kolom, steennr, orient)) {
+            // Recurse to place the next stone
+            telOplossingenDom(aantalStanden, aantalOplossingen);
+
+            // If placing the stone did not lead to a solution, remove it
+            maakZetOngedaan();
+            goto next;
+          }
+        }
+      }
+    }
+    next: ;
+  }
+  return aantalOplossingen;
+}
+
+
+int Stand::telOplossingenSlim(long long & aantalStanden, long long & aantalOplossingen) {
+  if (isOpgelost()) {
+    std::size_t key = computePositionKey();
+
+    bool keyExists = false;
+    for (const auto& existingKey : foundSolutions) {
+      if (existingKey == key) {
+        keyExists = true;
+        break;
+      }
+    }
+
+    if (!keyExists) {
+      foundSolutions.push_back(key);
+      cout << "Solved position key: " << key << '\n';
+      aantalOplossingen++;
+      drukAf();
+
+    }
+  }
+
+  // For elke steen
+  for (int steennr = 1; steennr <= (aantalStenen + aantalVerwijderd); ++steennr) {
+    // Als de steen al geplaatst is, ga naar volgende steen
+    if (isSteennrInStack(steennr)) {
+      continue;
+    }
+
+    // Stap 1, get width x height voor steen orientatie 0.
+    int steenWidth, steenHeight;
+    getSteenDimensies(steennr, steenWidth, steenHeight);
+    bool placed = false; 
+
+    // Splits steen op in twee groepen
+    // G1=orient{0,2,4,6}, G2=orient{1,3,5,7}
+    // Voor G1:
+    for (int orient = 0; orient < 8; orient += 2) {
+      for (int rij = 0; rij < (hoogte + 1 - steenHeight); rij++) {
+        for (int kolom = 0; kolom < (breedte + 1 - steenWidth); kolom++) {
+            aantalStanden++;
+           if (legSteenNeer(rij, kolom, steennr, orient)) {
+
+              // Recurse to place the next stone
+              telOplossingenSlim(aantalStanden, aantalOplossingen);
+
+              // If placing the stone did not lead to a solution, remove it
+              maakZetOngedaan();
+              placed = true;
+            }
+          if (placed) break;
+        }
+        if (placed) break;
+      }
+     if (placed) break; 
+    }
+
+    if (!placed) {
+      // Voor G2:
+      // invert width x height
+      int tempVal = steenHeight;
+      steenHeight = steenWidth;
+      steenWidth = tempVal;
+
+      for (int orient = 1; orient < 8; orient += 2) {
+        for (int rij = 0; rij < (hoogte + 1 - steenHeight); rij++) {
+          for (int kolom = 0; kolom < (breedte + 1 - steenWidth); kolom++) {
+              aantalStanden++;
+              if (legSteenNeer(rij, kolom, steennr, orient)) {
+
+                // Recurse to place the next stone
+                telOplossingenSlim(aantalStanden, aantalOplossingen);
+
+                // If placing the stone did not lead to a solution, remove it
+                maakZetOngedaan();
+                placed = true;
+              }
+            if (placed) break;
+          }
+          if (placed) break;
+        }
+      if (placed) break; 
+      }
+    }
+  }
+  return aantalOplossingen;
+}
 
 //*************************************************************************
 void Stand::draai90(char steen[5][5]) {

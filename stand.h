@@ -105,8 +105,11 @@ class Stand {
     int aantalStenen; // aantal stenen
     int aantalVerwijderd = 0; // aantal verwijderde stenen
     char stenen[20][5][5]; // representatie van de stenen
+    int performance = 0;
+    char opgeslagenSteen[5][5];
+
+    std::vector<std::size_t> foundSolutions;
     
-    // Add these three member variables
     // stack voor bijhouden zetten
     std::vector<int> steennrStack;
     std::vector<int> kolomStack;
@@ -120,23 +123,50 @@ class Stand {
 
     bool isOpgelost();
 
-    bool bepaalOplossingDom(long long & aantalStanden, int oplossing[MaxDimBord][MaxDimBord]);
+    bool bepaalOplossingDom(long long & aantalStanden);
 
-    bool bepaalOplossingSlim(long long & aantalStanden, int oplossing[MaxDimBord][MaxDimBord]);
+    bool bepaalOplossingSlim(long long & aantalStanden);
 
+    int telOplossingenDom(long long & aantalStanden, long long & aantalOplossingen);
+
+    int telOplossingenSlim(long long & aantalStanden, long long & aantalOplossingen);
+
+    
     // Remove a stone from the pool
     void verwijderSteen(int steennr);
 
     void maakZetOngedaan();
 
+    size_t computePositionKey();
+
     // Rotate a stone 90 degrees clockwise
     void draai90(char steen[5][5]);
 
+    char getSteen(int steennr);
+
     // Mirror a stone in x
     void spiegelX(char steen[5][5]);
-
+  
     // Get the rotated/mirrored stone based on the orientation number
     void krijgGeorienteerdeSteen(char steen[5][5], int orient);
+
+    void getSteenDimensies(int steennr, int& width, int& height);
+
+    // tempbord
+    int tempBord[MaxDimBord][MaxDimBord];
+    int tempAantalStenen;
+    int tempAantalVerwijderd; 
+    char tempStenen[20][5][5];
+    std::vector<int> tempSteennrStack;
+    std::vector<int> tempKolomStack;
+    std::vector<int> tempRijStack;
+    std::vector<char> temporigineleWaarde;
+      // sla huidig bord, stenen etc. tijdelijk op
+    void kopieerBord();
+      // herstel het bord
+    void herstelBord();
+
+    void sortStenen();
 
 };
 
