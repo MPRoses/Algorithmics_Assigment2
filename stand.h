@@ -106,7 +106,6 @@ class Stand {
     int aantalVerwijderd = 0; // aantal verwijderde stenen
     char stenen[20][5][5]; // representatie van de stenen
     int performance = 0;
-    char opgeslagenSteen[5][5];
 
     std::vector<std::size_t> foundSolutions;
     
@@ -152,6 +151,10 @@ class Stand {
 
     void getSteenDimensies(int steennr, int& width, int& height);
 
+    void getSteenSizes();
+
+
+
     // tempbord
     int tempBord[MaxDimBord][MaxDimBord];
     int tempAantalStenen;
@@ -171,6 +174,11 @@ class Stand {
 
     bool kanSteenHier(int rij, int kolom, int steennr, int orient);
 
+    vector<pair<int, int>> gelijkStenenParen;
+
+    void zoekGelijkStenen();
+
+    std::vector<std::pair<int, int>> steenSizes;
 
 };
 

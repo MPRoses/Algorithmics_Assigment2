@@ -10,7 +10,9 @@
 #include <vector>
 #include <stack>
 #include <unordered_set>
+#include <unordered_map>
 #include <deque>
+#include <iomanip>  // Include this at the top of your file
 
 
 
@@ -19,8 +21,6 @@ using namespace std;
 //*************************************************************************
 
 Stand::Stand() {
-  // TODO: implementeer zo nodig deze constructor
-
 }
 
 //*************************************************************************
@@ -33,8 +33,6 @@ Stand::Stand(int waardeM, int waardeN) {
 //*************************************************************************
 
 Stand::~Stand() {
-  // TODO: implementeer zo nodig deze destructor
-
 } // ~Stand
 
 //*************************************************************************
@@ -52,11 +50,12 @@ int Stand::getVakje(int i, int j) {
 
 
 //*************************************************************************
+
 void Stand::drukAf() {
   // Print the board
   for (int i = 0; i < hoogte; ++i) {
     for (int j = 0; j < breedte; ++j) {
-      cout << bord[i][j] << ' ';
+      cout << std::setw(2) << bord[i][j] << ' ';
     }
     cout << '\n';
   }
@@ -117,10 +116,47 @@ bool Stand::leesInStenen(const char * invoernaam) {
     }
   }
 
+  zoekGelijkStenen();
+  getSteenSizes();
+
   fin.close();
 
   return true;
 } // leesInStenen
+
+
+// checkt of stenen dupli van elkaar zijn en zo ja
+// slaat dat op in vector<pair<int, int>> gelijkStenenParen
+void Stand::zoekGelijkStenen() {
+  for (int steennr1 = 1; steennr1 <= aantalStenen; steennr1++) {
+    for (int steennr2 = steennr1 + 1; steennr2 <= aantalStenen; steennr2++) {
+      for (int orient = 0; orient < 8; ++orient) {
+        char georienteerdeSteen[5][5];
+        for (int i = 0; i < 5; ++i) {
+          for (int j = 0; j < 5; ++j) {
+            georienteerdeSteen[i][j] = stenen[steennr2 - 1][i][j];
+          }
+        }
+        krijgGeorienteerdeSteen(georienteerdeSteen, orient);
+
+        bool gelijk = true;
+        for (int i = 0; i < 5 && gelijk; i++) {
+          for (int j = 0; j < 5 && gelijk; j++) {
+            if (stenen[steennr1 - 1][i][j] != georienteerdeSteen[i][j]) {
+              gelijk = false;
+            }
+          }
+        }
+
+        if (gelijk) {
+          gelijkStenenParen.push_back(make_pair(steennr1, steennr2));
+          break;
+        }
+      }
+    }
+  }
+}
+
 
 
 //*************************************************************************
@@ -279,6 +315,27 @@ bool Stand::isOpgelost() {
     return true;
 }
 
+
+  void Stand::getSteenSizes() {
+
+    for (int steennr = 1; steennr <= (aantalStenen + aantalVerwijderd); ++steennr) {
+        int width, height;
+        getSteenDimensies(steennr, width, height);
+        int size = width * height;
+        steenSizes.push_back(std::make_pair(steennr, size));
+    }
+    
+    // Sort from large to small based on size using bubble sort
+    for (size_t i = 0; i < steenSizes.size() - 1; ++i) {
+        for (size_t j = 0; j < steenSizes.size() - i - 1; ++j) {
+            if (steenSizes[j].second < steenSizes[j + 1].second) {
+                std::swap(steenSizes[j], steenSizes[j + 1]);
+            }
+        }
+    }
+    
+}
+
 bool Stand::bepaalOplossing(long long & aantalStanden, bool slim, int oplossing[MaxDimBord][MaxDimBord]) {
   kopieerBord();
 
@@ -315,32 +372,30 @@ bool Stand::bepaalOplossing(long long & aantalStanden, bool slim, int oplossing[
 
   return true;
 } 
-
 bool Stand::bepaalOplossingDom(long long & aantalStanden) {
-  // Base case: If the board is solved, we have found a solution
+  cout << "Entering bepaalOplossingDom, aantalStanden: " << aantalStanden << '\n';
+
   if (isOpgelost()) {
+    cout << "Solution found!\n";
     return true;
   }
 
-  // Try to place each stone on the board
   for (int steennr = 1; steennr <= (aantalStenen + aantalVerwijderd); ++steennr) {
-    // If the stone is already in the stack, skip this iteration
     if (isSteennrInStack(steennr)) {
       continue;
     }
     for (int rij = 0; rij < hoogte; ++rij) {
       for (int kolom = 0; kolom < breedte; ++kolom) {
         for (int orient = 0; orient < 8; ++orient) {
-          aantalStanden++;
-          // Try to place the stone
           if (legSteenNeer(rij, kolom, steennr, orient)) {
+            aantalStanden++;
+            cout << "Placed stone " << steennr << " at (" << rij << ", " << kolom << "), orientation " << orient << '\n';
 
-            // Recurse to place the next stone
             if (bepaalOplossingDom(aantalStanden)) {
               return true;
             }
 
-            // If placing the stone did not lead to a solution, remove it
+            cout << "Removing stone " << steennr << " from (" << rij << ", " << kolom << "), orientation " << orient << '\n';
             maakZetOngedaan();
           }
         }
@@ -348,7 +403,7 @@ bool Stand::bepaalOplossingDom(long long & aantalStanden) {
     }
   }
 
-  // If no solution was found after trying all stones, return false
+  cout << "Exiting bepaalOplossingDom, no solution found\n";
   return false;
 }
 
@@ -424,6 +479,8 @@ bool Stand::bepaalOplossingSlim(long long & aantalStanden) {
 
     for (const auto& optie : opties) {
       if (legSteenNeer(get<0>(optie), get<1>(optie), steennr, get<2>(optie))) {
+        aantalStanden++;
+        // als bovenstaande if-loop waar is houdt in dat een nieuwe positie bereikt is
         if (bepaalOplossingSlim(aantalStanden)) {
           return true;
         }
@@ -440,20 +497,34 @@ bool Stand::bepaalOplossingSlim(long long & aantalStanden) {
 //*************************************************************************
 
 std::size_t Stand::computePositionKey() {
+  // Create a map for equivalent stones
+  std::unordered_map<int, int> eqStones;
+  for (const auto& pair : gelijkStenenParen) {
+    eqStones[pair.first] = pair.second;
+    eqStones[pair.second] = pair.second;
+  }
+
   std::size_t seed = 0;
   for (int i = 0; i < hoogte; ++i) {
     for (int j = 0; j < breedte; ++j) {
-      seed ^= bord[i][j] + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      int stone = bord[i][j];
+      // Check if the stone is part of a pair
+      if (eqStones.count(stone)) {
+        stone = eqStones[stone];
+      }
+      seed ^= stone + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
   }
   return seed;
 }
 
 
+
 void Stand::drukAfOplossing(int oplossing[MaxDimBord][MaxDimBord]) {
   for (int i = 0; i < hoogte; ++i) {
     for (int j = 0; j < breedte; ++j) {
-      cout << oplossing[i][j] << ' ';
+      // gebruik van setw zodat bij getal > 10 whitespace juist verloopt
+      cout << std::setw(2) << oplossing[i][j] << ' ';
     }
     cout << '\n';
   }
@@ -546,16 +617,7 @@ int Stand::telOplossingenDom(long long & aantalStanden, long long & aantalOploss
 
     if (!keyExists) {
       foundSolutions.push_back(key);
-      //cout << "Solved position key: " << key << '\n';
-
-      for (int i = 0; i < hoogte; ++i) {
-        for (int j = 0; j < breedte; ++j) {
-          cout << bord[i][j] << ' ';
-        }
-        cout << '\n';
-      }
-        cout << '\n';
-      
+      cout << "Unique solution seed found: " << key << '\n';
       aantalOplossingen++;
     }
   }
@@ -569,9 +631,9 @@ int Stand::telOplossingenDom(long long & aantalStanden, long long & aantalOploss
     for (int rij = 0; rij < hoogte; ++rij) {
       for (int kolom = 0; kolom < breedte; ++kolom) {
         for (int orient = 0; orient < 8; ++orient) {
-          aantalStanden++;
-          // Try to place the stone
           if (legSteenNeer(rij, kolom, steennr, orient)) {
+            aantalStanden++;
+            // als bovenstaande if-loop waar is houdt in dat een nieuwe positie bereikt is
             // Recurse to place the next stone
             telOplossingenDom(aantalStanden, aantalOplossingen);
 
@@ -600,14 +662,15 @@ int Stand::telOplossingenSlim(long long & aantalStanden, long long & aantalOplos
 
     if (!keyExists) {
       foundSolutions.push_back(key);
-      cout << "Key gevonden: " << key << '\n';
+      cout << "Unique solution seed found: " << key << '\n';
       aantalOplossingen++;
     }
     return aantalOplossingen;
   }
 
   // For each stone
-  for (int steennr = 1; steennr <= (aantalStenen + aantalVerwijderd); ++steennr) {
+    for (const auto& steen : steenSizes) {
+        int steennr = steen.first;
     // If the stone is already placed, go to the next stone
     if (isSteennrInStack(steennr)) {
       continue;
@@ -620,6 +683,7 @@ int Stand::telOplossingenSlim(long long & aantalStanden, long long & aantalOplos
     for (const auto& optie : opties) {
       // Place the stone
       if (legSteenNeer(get<0>(optie), get<1>(optie), steennr, get<2>(optie))) {
+        aantalStanden++;
         // Recurse to place the next stone
         telOplossingenSlim(aantalStanden, aantalOplossingen);
 
@@ -631,6 +695,8 @@ int Stand::telOplossingenSlim(long long & aantalStanden, long long & aantalOplos
 
   return aantalOplossingen;
 }
+
+
 
 //*************************************************************************
 void Stand::draai90(char steen[5][5]) {
