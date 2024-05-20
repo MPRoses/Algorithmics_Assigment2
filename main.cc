@@ -7,7 +7,8 @@
 //   - om een oplossing te bepalen vanaf de huidige stand
 //   - of om het aantal oplossingen vanaf de huidige stand te tellen.
 //
-// Namen studenten, datum
+// Jens van der Sloot (s4018494), Arthur van der Sterren (s4097769)
+// 20/05/24
 
 #include <iostream>
 #include <ctime>  // voor clock() en clock_t
@@ -17,8 +18,6 @@
 using namespace std;
 const int MaxBestandsNaamLengte = 30; // maximale lengte van een bestandsnaam
 
-
-//*************************************************************************
 
 // Speel het spel vanaf stand s1.
 // Hierbij krijgt de gebruiker herhaaldelijk de kans om
@@ -124,8 +123,6 @@ void doeSpel(Stand * s1) {
 
 } // doeSpel
 
-//*************************************************************************
-
 void hoofdmenu() {
   Stand * s1; // pointer, om makkeijk nieuwe objecten te kunnen maken
   // en weer weg te gooien
@@ -139,7 +136,7 @@ void hoofdmenu() {
     cin >> hoogte;
     cout << "Geef een waarde voor het aantal kolommen van het bord (breedte): ";
     cin >> breedte;
-    if (integerInBereik("hoogte", hoogte, 2, MaxDimBord) &&
+    if (integerInBereik("hoogte", hoogte, 1, MaxDimBord) &&
       integerInBereik("breedte", breedte, 2, MaxDimBord)) {
       s1 = new Stand(hoogte, breedte);
 
@@ -171,11 +168,8 @@ void hoofdmenu() {
 
 } // hoofdmenu
 
-//*************************************************************************
-
 int main() {
   hoofdmenu();
-
   return 0;
 
 }

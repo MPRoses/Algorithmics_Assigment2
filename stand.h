@@ -1,10 +1,8 @@
-// Definitie van klasse Stand........
-#ifndef StandHVar // om te voorkomen dat dit .h bestand meerdere keren
-#define StandHVar // wordt ge-include 
+#ifndef StandHVa
+#define StandHVar
 
 #include <fstream>
 #include "constantes.h"
-#include "steen.h"
 #include <vector>
 
 class Stand {
@@ -18,12 +16,12 @@ class Stand {
     // destructor
     ~Stand();
 
-    // Geef waarde van hoogte.
+    // Geeft waarde van hoogte
     int getHoogte() {
       return hoogte;
     }
 
-    // Geef waarde van breedte.
+    // Geeft waarde van breedte
     int getBreedte() {
       return breedte;
     }
@@ -105,59 +103,16 @@ class Stand {
     int aantalStenen; // aantal stenen
     int aantalVerwijderd = 0; // aantal verwijderde stenen
     char stenen[20][5][5]; // representatie van de stenen
-    int performance = 0;
-    int minSteenSize;
+    int minSteenSize; // size (b*h) van kleinste steen
 
+    // bijhouden gevonden oplossingen bij tel oplossingen
     std::vector<std::size_t> foundSolutions;
-    
+  
     // stack voor bijhouden zetten
     std::vector<int> steennrStack;
     std::vector<int> kolomStack;
     std::vector<int> rijStack;
     std::vector<char> origineleWaarde; // originele waarde van de top-left cell van elke steen
-
-
-    // TODO: uw eigen private memberfuncties en -variabelen
-
-    bool isSteennrInStack(int steennr);
-
-    bool isOpgelost();
-
-    bool bepaalOplossingDom(long long & aantalStanden);
-
-    bool bepaalOplossingSlim(long long & aantalStanden);
-
-    int telOplossingenDom(long long & aantalStanden, long long & aantalOplossingen);
-
-    int telOplossingenSlim(long long & aantalStanden, long long & aantalOplossingen);
-
-    
-    // Remove a stone from the pool
-    void verwijderSteen(int steennr);
-
-    void maakZetOngedaan();
-
-    size_t computePositionKey();
-
-    // Rotate a stone 90 degrees clockwise
-    void draai90(char steen[5][5]);
-
-    void dfs(int i, int j, vector<vector<bool>>& visited, int& zeroCount);
-    bool isEncased();
-
-    char getSteen(int steennr);
-
-    // Mirror a stone in x
-    void spiegelX(char steen[5][5]);
-  
-    // Get the rotated/mirrored stone based on the orientation number
-    void krijgGeorienteerdeSteen(char steen[5][5], int orient);
-
-    void getSteenDimensies(int steennr, int& width, int& height);
-
-    void getSteenSizes();
-
-
 
     // tempbord
     int tempBord[MaxDimBord][MaxDimBord];
@@ -168,22 +123,77 @@ class Stand {
     std::vector<int> tempKolomStack;
     std::vector<int> tempRijStack;
     std::vector<char> temporigineleWaarde;
-      // sla huidig bord, stenen etc. tijdelijk op
-    void kopieerBord();
-      // herstel het bord
-    void herstelBord();
 
-    // help
-    vector<tuple<int, int, int>> getOptiesSlim(int steennr);
-
-    bool kanSteenHier(int rij, int kolom, int steennr, int orient);
-
+    // Houdt pair steennummers bij voor gelijke stenen
     vector<pair<int, int>> gelijkStenenParen;
 
-    void zoekGelijkStenen();
-
+    // Pair : steennummer, size
     std::vector<std::pair<int, int>> steenSizes;
 
+    // Checkt of steen op basis van steennummer al gelegd is
+    // true als gelegd, anders false
+    bool isSteennrInStack(int steennr);
+    // Checkt of het bord is opgelost ( ofwel vol zit)
+    // Returned true als vol is, anders false
+    bool isOpgelost();
+    // Zoekt oplossing op basis van huidige positie met beschikbare
+    // stenen
+    // True als gelukt, anders false
+    bool bepaalOplossingDom(long long & aantalStanden);
+    // Zoekt oplossing op basis van huidige positie met beschikbare
+    // stenen. Gebruikt pruning i.v.t. bepaalOplossingDom
+    // True als gelukt, anders false
+    bool bepaalOplossingSlim(long long & aantalStanden);
+    // Telt het aantal mogelijke oplossingen op basis van huidige
+    // positie met beschikbare stenen.
+    // Returned het aantal oplossingen
+    int telOplossingenDom(long long & aantalStanden, long long & aantalOplossingen);
+    // Telt het aantal mogelijke oplossingen op basis van huidige
+    // positie met beschikbare stenen. Gebruikt pruning i.v.t
+    // telOplossingenDom
+    // Returned het aantal oplossingen
+    int telOplossingenSlim(long long & aantalStanden, long long & aantalOplossingen);
+
+    // Verwijdert een steen van de beschikbare pool
+    void verwijderSteen(int steennr);
+    // Voegt een steen terug toe
+    void maakZetOngedaan();
+    // checkt of stenen dupli van elkaar zijn en zo ja
+    // slaat dat op in vector<pair<int, int>> gelijkStenenParen
+    void zoekGelijkStenen();
+    // Genereerd seed op basis van huidige positie
+    // Als gebruikte steen voor oplossing onderdeel is van 
+    // gelijkStenenParen wordt voor de eerste een seed gegenereerd
+    // zodat dupli's vermeden worden 
+    size_t computePositionKey();
+    // Depth first search die vakgebied met nullen bijhoudt
+    void dfs(int i, int j, vector<vector<bool>>& visited, int& zeroCount);
+    // Checkt of er een leeg vakgebied bestaat wat kleiner is dan 
+    // int minSteenSize, zoja geeft true, anders false
+    bool isEncased();
+  
+    // Krijg de georienteerde steen op basis van meegegeven steen en orientatie
+    void krijgGeorienteerdeSteen(char steen[5][5], int orient);
+    // Roteerd een steen 90 graden met de klok mee
+    void draai90(char steen[5][5]);
+    // Spiegelt een steen in de x-as
+    void spiegelX(char steen[5][5]);
+    // Geeft de achtereenlopende dimensies terug van een steen
+    // E.g. XX.\n.XX\..X heeft maximaal twee horizontaal en
+    // twee verticaal dus width = 2, height = 2
+    void getSteenDimensies(int steennr, int& width, int& height);
+    // Sorteert stenen van groot tot klein
+    // Slaat het resultaat op in steenSizes : pair<steennr, size(: width * height)
+    void getSteenSizes();
+    // sla huidig bord, stenen etc. tijdelijk op
+    void kopieerBord();
+    // herstel het bord
+    void herstelBord();
+    // Geeft de mogelijke opties terug in de huidige positie
+    // in vorm: rij, kolom, orient
+    vector<tuple<int, int, int>> getOpties(int steennr);
+    // True als steen hier gelegd kan worden, anders false
+    bool kanSteenHier(int rij, int kolom, int steennr, int orient);
 };
 
 #endif
