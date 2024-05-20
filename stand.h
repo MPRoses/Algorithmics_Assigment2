@@ -187,11 +187,12 @@ class Stand {
     void getSteenSizes();
     // sla huidig bord, stenen etc. tijdelijk op
     void kopieerBord();
-    // herstel het bord
+    // herstelt het bord
     void herstelBord();
     // Geeft de mogelijke opties terug in de huidige positie
     // in vorm: rij, kolom, orient
     vector<tuple<int, int, int>> getOpties(int steennr);
+    // Checkt of steen geplaatst kan worden op meegegeven plek
     // True als steen hier gelegd kan worden, anders false
     bool kanSteenHier(int rij, int kolom, int steennr, int orient);
 };
