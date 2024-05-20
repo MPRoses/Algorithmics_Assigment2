@@ -106,6 +106,7 @@ class Stand {
     int aantalVerwijderd = 0; // aantal verwijderde stenen
     char stenen[20][5][5]; // representatie van de stenen
     int performance = 0;
+    int minSteenSize;
 
     std::vector<std::size_t> foundSolutions;
     
@@ -140,6 +141,9 @@ class Stand {
 
     // Rotate a stone 90 degrees clockwise
     void draai90(char steen[5][5]);
+
+    void dfs(int i, int j, vector<vector<bool>>& visited, int& zeroCount);
+    bool isEncased();
 
     char getSteen(int steennr);
 
